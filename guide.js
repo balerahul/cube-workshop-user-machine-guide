@@ -32,9 +32,12 @@
     document.querySelectorAll('[data-computer-label]').forEach(el => {el.textContent=selected.label;});
     document.querySelectorAll('[data-shell-label]').forEach(el => {el.textContent=selected.shell;});
     document.querySelectorAll('[data-enter-key]').forEach(el => {el.textContent=selected.enter;});
+    const mount=key==='windows'?'"${PWD}:/work"':'"$PWD:/work"';
+    const linuxUser=key==='linux'?'--user "$(id -u):$(id -g)" ':'';
+    const shellCommand=`docker run --rm -it --init --pull=never --network none --shm-size=256m ${linuxUser}-v ${mount} --entrypoint bash cube-workshop:2026-b6d6cf6a-${selected.arch}`;
     document.querySelectorAll('[data-command]').forEach(el => {
       const name=el.dataset.command;
-      el.textContent=name==='list'?selected.list:name==='progress'?selected.progress:`${selected.launcher} ${name}${['icns','cns'].includes(name)?' 2':''}`;
+      el.textContent=name==='list'?selected.list:name==='progress'?selected.progress:name==='shell'?shellCommand:`${selected.launcher} ${name}${['icns','cns'].includes(name)?' 2':''}`;
     });
     document.querySelector('[data-ready-line]').textContent=`CUBE image ready for ${selected.arch}. Next: ${selected.launcher} smoke`;
     const folder=document.getElementById('folder-picture');

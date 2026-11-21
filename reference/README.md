@@ -54,9 +54,70 @@ work offline. The smoke test runs ten ICNS steps and checks that finite
 forces and visualization slices were written. It is a setup check, not a
 converged flow solution or a full-case drag comparison.
 
-## Run and change the case
+## Run CUBE yourself
 
-On macOS/Linux:
+CUBE needs two things: the program `cube` and a parameter file ending in
+`.toml`. First open a shell inside the container, from this folder.
+
+On an Apple Silicon Mac:
+
+```sh
+docker run --rm -it --init --pull=never --network none --shm-size=256m -v "$PWD:/work" --entrypoint bash cube-workshop:2026-b6d6cf6a-arm64
+```
+
+On an Intel Mac, use the same command with `amd64` at the end. On Linux, add
+your user, and use `arm64` instead of `amd64` on an ARM64 computer:
+
+```sh
+docker run --rm -it --init --pull=never --network none --shm-size=256m --user "$(id -u):$(id -g)" -v "$PWD:/work" --entrypoint bash cube-workshop:2026-b6d6cf6a-amd64
+```
+
+On Windows, in PowerShell:
+
+```powershell
+docker run --rm -it --init --pull=never --network none --shm-size=256m -v "${PWD}:/work" --entrypoint bash cube-workshop:2026-b6d6cf6a-amd64
+```
+
+The prompt changes to something like `ubuntu@3f2a...:/work$`. The name before
+`@` may differ on your computer, which is normal. Inside the container, `/work` is this folder. Give each run its own
+folder, because CUBE overwrites old results in the folder where it runs:
+
+```sh
+mkdir -p my_runs/icns1
+cp cases/input_icns.toml cases/mesh_cylinder.bin cases/cylinder.stl my_runs/icns1/
+cd my_runs/icns1
+mpiexec --bind-to none --oversubscribe -n 2 cube -p input_icns.toml | tee run.log
+```
+
+A finished run ends with `normal end.` For the compressible example:
+
+```sh
+cd /work
+mkdir -p my_runs/cns1
+cp cases/input_cns.toml cases/mesh_cylinder.bin cases/cylinder.stl my_runs/cns1/
+cd my_runs/cns1
+mpiexec --bind-to none --oversubscribe -n 2 cube -p input_cns.toml | tee run.log
+```
+
+The number after `-n` is the number of MPI processes. Start with 2. The image
+uses one OpenMP and one BLAS thread per process. Keep other heavy applications
+closed until you know your laptop's capacity. Type `exit` to leave the
+container. Your files stay in this folder.
+
+## Change the case
+
+Make a new run folder as above, then edit its `.toml` file on your laptop with
+a plain-text editor. Try `[time] T_end` or an output interval first. Then run
+the same `mpiexec` command from that folder. Keep the output directory in its
+existing form, such as `./output_icns/`: simple names with a trailing slash,
+no spaces or shell characters. Keep the positive `[initial_condition] density`
+entry in the CNS case.
+
+## One-line shortcut
+
+The launcher does the same work with one command, from this folder outside
+the container. It copies the inputs from `cases/` into a new
+`runs/<date>-<case>-.../` directory and checks the output:
 
 ```sh
 sh run.sh icns 2
@@ -70,23 +131,9 @@ On Windows:
 .\run.ps1 cns 2
 ```
 
-The final argument is the number of MPI processes: 1, 2 or 4. Start with 2.
-The image uses one OpenMP and one BLAS thread per process. Keep other heavy
-applications closed until you know your laptop's capacity.
-
-Edit `cases/input_icns.toml` or `cases/input_cns.toml`, then run again. Try
-`[time] T_end` or an output interval first. Keep the output directory in its
-existing form, such as `./output_icns/`: simple names with a trailing slash,
-no spaces or shell characters. The laptop folder containing the kit may
-have spaces.
-The provided check expects LSURF force output and plane slices to remain
-enabled; choose intervals short enough to produce them before the run ends.
-Keep the positive `[initial_condition] density` entry in the CNS case.
-
-Every launch copies the current inputs into a new `runs/<date>-<case>-.../`
-directory. Earlier runs are preserved. Each run contains its own input,
-`run.log`, outputs, and `summary.json`. The launcher prints the result
-directory immediately; the solver writes progress to `run.log` there.
+The final argument is the number of MPI processes: 1, 2 or 4. Each launcher
+run contains its own input, `run.log`, outputs and `summary.json`. The
+launcher check expects LSURF force output and plane slices to remain enabled.
 
 ## Inspect the results
 
@@ -113,11 +160,11 @@ wind speed 34.4 m/s, cylinder diameter 0.1 m and height 0.2 m.
 For the unmodified full case, add force-file columns 3 and 9, then divide by
 14.20032 N to obtain drag coefficient. ICNS uses
 `output_icns/force_lsurf_001.txt`; CNS uses `output_cns/eval_lsurf_001.txt`.
-The original teaching pack records approximately 0.93746 for ICNS and
-1.61562 for CNS at its final sampled time using four MPI processes. This
-case's measured forces vary with the MPI process count, so do not use
-those four-process numbers to check the default two-process run. See
-`VALIDATION.md` for the container's measured results by process count.
+With CUBE b6d6cf6a the final values are **0.937563 for ICNS** and
+**1.558051 for CNS**. Both were identical with 1, 2 and 4 MPI processes.
+The CNS value is 3% lower than in the earlier package (1.606204), because CUBE
+now applies the CNS filter once per time step instead of four times.
+See `VALIDATION.md` for the measured results.
 Edited inputs and the short smoke test need not reproduce full-run values.
 
 The ICNS and CNS values differ because these cases also use different
@@ -132,7 +179,9 @@ compressibility effect.
   error message, with its checksum file.
 - Out of memory: close other applications, try one MPI process, and check
   the memory allocated to Docker/WSL. Preserve `run.log` for support.
-- Failed simulation: inspect `run.log` in the printed run directory.
+- `mpiexec` or `cube` not found: you are outside the container. Open the
+  container shell first.
+- Failed simulation: inspect `run.log` in your run folder.
 - Disk becoming full: remove only old run folders you no longer need.
 - To interrupt a run, press Ctrl+C. Partial results remain for inspection.
 

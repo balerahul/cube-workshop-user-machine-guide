@@ -3,13 +3,14 @@
 **[Open the illustrated guide](https://balerahul.github.io/cube-workshop-user-machine-guide/)**
 
 The guide covers Windows, macOS and Linux. Participants install Docker,
-download a prepared CUBE package, edit TOML inputs and run the examples.
+download a prepared CUBE package (CUBE develop `b6d6cf6a`), edit TOML inputs
+and run the `cube` program with them.
 No compiler or cluster account is needed.
 
-**[Download the tutorial packages](https://github.com/balerahul/cube-workshop-user-machine-guide/releases/tag/workshop-2026)**
+**[Download the tutorial packages](https://github.com/balerahul/cube-workshop-user-machine-guide/releases/tag/workshop-2026-b6d6cf6a)**
 
-- `CUBE-laptop-2026-arm64.zip`: Apple Silicon Macs and ARM64 Linux.
-- `CUBE-laptop-2026-intel-amd.zip`: Intel/AMD Windows and Linux, and Intel Macs.
+- `CUBE-laptop-2026-b6d6cf6a-arm64.zip`: Apple Silicon Macs and ARM64 Linux.
+- `CUBE-laptop-2026-b6d6cf6a-intel-amd.zip`: Intel/AMD Windows and Linux, and Intel Macs.
 - The matching `.zip.sha256` files provide download checksums.
 
 Each package contains a compiled CUBE executable and runtime libraries in a

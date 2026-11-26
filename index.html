@@ -11,7 +11,7 @@
 <div class="preview-notice" id="preview-notice" hidden>Local preview of the CUBE workshop guide.</div>
 <header class="site-header"><a href="#start" class="brand"><svg width="34" height="38" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 2 32 10v18l-15 8L2 28V10Z" fill="#e9f3fa" stroke="#155e9b" stroke-width="2"/><path d="m2 10 15 8 15-8M17 18v18" fill="none" stroke="#155e9b" stroke-width="2"/></svg><span>CUBE workshop <small>Laptop setup · 2026</small></span></a><a class="header-help" href="#help">Troubleshooting</a><button class="quiet-button" id="print-guide" type="button">Print this guide</button></header>
 <div class="page-layout">
-<aside class="step-nav" aria-label="Guide sections"><p>Setup sequence</p><nav><a href="#start">Overview</a><a href="#computer">1. Check your computer</a><a href="#docker">2. Install Docker</a><a href="#download">3. Download the tutorial package</a><a href="#unpack">4. Extract the ZIP</a><a href="#terminal">5. Open a command window</a><a href="#load">6. Load CUBE</a><a href="#test">7. Run the short test</a><a href="#simulate">8. Run a full simulation</a><a href="#edit">9. Change an input</a><a href="#results">10. Find and view results</a><a href="#gridgene">Download GridGene</a><a href="#help">Troubleshooting</a></nav><p class="nav-foot">No programming or Docker experience is assumed.</p></aside>
+<aside class="step-nav" aria-label="Guide sections"><p>Setup sequence</p><nav><a href="#start">Overview</a><a href="#computer">1. Check your computer</a><a href="#docker">2. Install Docker</a><a href="#download">3. Download the tutorial package</a><a href="#unpack">4. Extract the ZIP</a><a href="#terminal">5. Open a command window</a><a href="#load">6. Load CUBE</a><a href="#test">7. Run the short test</a><a href="#simulate">8. Run a full simulation</a><a href="#edit">9. Change an input</a><a href="#results">10. Find and view results</a><a href="#drone">Drone example (optional)</a><a href="#gridgene">Download GridGene</a><a href="#help">Troubleshooting</a></nav><p class="nav-foot">No programming or Docker experience is assumed.</p></aside>
 <main id="main">
 <section id="start" class="intro">
   <p class="guide-kicker">CUBE Setup</p><h1>Setting up CUBE on your<br class="wide-only"> local machine.</h1>
@@ -196,6 +196,43 @@ T_end = 0.005</code></pre></div></div>
   <p>The reader was checked with ParaView 5.12. Labels and buttons can vary in other versions. If automatic format detection fails, show the organizer the mesh/solution filenames and your reader settings.</p>
   <details><summary>Check the force result numerically</summary><p>For the unmodified full cases, the measured drag coefficients are <strong>0.937563 (ICNS)</strong> and <strong>1.558051 (CNS)</strong>. Both values were identical with 1, 2 and 4 MPI processes. The CNS value is 3% lower than in the earlier package (1.606204), because CUBE now applies the CNS filter once per time step instead of four times.</p><p>From inside an ICNS run folder, this command prints your value:</p><div class="command"><div><span>Inside the container</span><button type="button" class="copy-command">Copy</button></div><pre><code>tail -1 output_icns/force_lsurf_001.txt | awk '{print ($3+$9)/14.20032}'</code></pre></div><p>For CNS, use <code>output_cns/eval_lsurf_001.txt</code> instead.</p><p>See <a href="reference/VALIDATION.md">the validation report</a> for timings, memory use and platform test limits, and the <a href="reference/README.md">case instructions</a> for the force-file columns. A short startup test is not expected to reproduce a full-run drag value.</p></details>
   <div class="checkpoint"><strong>Workflow complete:</strong> the environment is configured, CUBE has run successfully, and the resulting flow field is available for inspection.</div>
+</section>
+
+<section id="drone" class="guide-step"><div class="step-heading"><span>+</span><h2>Drone example (optional)</h2></div>
+  <p>This extra example flies a small quadcopter drone with four rotors. Each rotor is modelled as spinning force lines, and the mesh moves with the drone. The drone is held still until 0.10 s, and then it flies freely until 0.30 s. It can move in x, y and z and turn in roll, pitch and yaw. <strong>This is a demo:</strong> the forces have not been compared with a real drone, so do not use the numbers for design.</p>
+  <dl class="result-files"><dt>input_hover.toml</dt><dd>All four rotors turn at the same speed, so the drone hovers and stays nearly still.</dd><dt>input_roll.toml</dt><dd>One rotor turns faster and the opposite rotor turns slower, so the drone tips sideways (rolls).</dd></dl>
+  <h3>Download the drone files</h3>
+  <p>Download the ZIP that matches your computer. It holds the drone program and its input files. It runs with the CUBE package that you loaded in step 6, so no new Docker image is needed.</p>
+  <div class="download-panel"><a class="primary-button" href="https://github.com/balerahul/cube-workshop-user-machine-guide/releases/download/workshop-2026-b6d6cf6a/cube-drone-10mm-arm64.zip">Mac (Apple Silicon) or ARM64 Linux</a><p class="filename">cube-drone-10mm-arm64.zip (1.6 MB)</p><a class="primary-button" href="https://github.com/balerahul/cube-workshop-user-machine-guide/releases/download/workshop-2026-b6d6cf6a/cube-drone-10mm-intel-amd.zip">Windows, Intel Mac or Intel/AMD Linux</a><p class="filename">cube-drone-10mm-intel-amd.zip (1.7 MB)</p></div>
+  <p>Extract the ZIP inside your <code>cube-laptop</code> folder, so that you have the folder <code>cube-laptop/cube-drone</code>.</p>
+  <h3>Run the hover</h3>
+  <p>Open a shell inside the container with the command from <a href="#simulate">step 8</a>. Then copy these commands. Each run gets its own folder, because a run overwrites the results in its folder.</p>
+  <div class="command"><div><span>Inside the container</span><button type="button" class="copy-command">Copy</button></div><pre><code>cd /work
+chmod +x cube-drone/cube_drone
+mkdir -p my_runs/hover/output
+cp cube-drone/input_hover.toml cube-drone/rotors.inp cube-drone/*.stl cube-drone/*.dat my_runs/hover/
+cd my_runs/hover
+mpiexec --bind-to none --oversubscribe -n 2 /work/cube-drone/cube_drone -p input_hover.toml | tee run.log</code></pre></div>
+  <p><strong>This is a long run.</strong> The hover took about 24 minutes with 2 processes on an Apple Silicon Mac in our test, and it used about 1.2 GB of memory. Prevent the computer from entering sleep during the run. To stop a run early, press <strong>Ctrl + C</strong>.</p>
+  <div class="expected success"><span>A finished run ends with</span><pre><code> elapse time =   …   (sec)
+ normal end.</code></pre></div>
+  <h3>See where the drone went</h3>
+  <div class="command"><div><span>Inside the container</span><button type="button" class="copy-command">Copy</button></div><pre><code>sh /work/cube-drone/drone_summary.sh</code></pre></div>
+  <div class="expected"><span>Result of our hover test</span><pre><code>time             0.3000 s
+position x y z   0.42  0.34  -0.00 mm
+speed vx vy vz   0.0053  0.0041  0.0013 m/s
+roll pitch yaw   -0.12  0.17  0.06 deg</code></pre><p>The drone moved less than half a millimetre and tilted less than 0.2 degrees, so it hovers.</p></div>
+  <p>The file <code>output/drone_state.txt</code> holds one line per time step: the time, position, speed, attitude, spin and air forces. Its first line names the columns. The 3D flow at the start and at the end is in <code>output/mesh.xyz</code> and the <code>output/field_….q</code> files, in the same PLOT3D format as in <a href="#results">step 10</a>.</p>
+  <details><summary>Run the roll flight</summary><p>The roll flight also took about 24 minutes with 2 processes in our test.</p><div class="command"><div><span>Inside the container</span><button type="button" class="copy-command">Copy</button></div><pre><code>cd /work
+mkdir -p my_runs/roll/output
+cp cube-drone/input_roll.toml cube-drone/rotors.inp cube-drone/*.stl cube-drone/*.dat my_runs/roll/
+cd my_runs/roll
+mpiexec --bind-to none --oversubscribe -n 2 /work/cube-drone/cube_drone -p input_roll.toml | tee run.log
+sh /work/cube-drone/drone_summary.sh</code></pre></div><div class="expected"><span>Result of our roll test</span><pre><code>time             0.3000 s
+position x y z   0.28  -3.13  0.24 mm
+speed vx vy vz   0.0036  -0.0633  0.0147 m/s
+roll pitch yaw   5.57  0.30  0.12 deg</code></pre><p>The drone rolled by 5.6 degrees and drifted 3 mm toward −y.</p></div></details>
+  <p class="small">Change the four values of <code>rotor_speed</code> in the <code>[drone]</code> table to fly a different manoeuvre. Keep the largest CFL number, the last column of the log, at or below 0.34; a larger value can make this moving-mesh case unstable.</p>
 </section>
 
 <section id="gridgene" class="guide-step"><div class="step-heading"><span>↓</span><h2>Download GridGene</h2></div>
